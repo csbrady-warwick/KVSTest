@@ -1,23 +1,28 @@
 CXX := g++
-CXXFLAGS := -O3
+CXXFLAGS := -O3 --std=c++17
 
-TARGETS := generate generateOrdered traverse elementAccess
+TARGETS := bin/generate bin/generateOrdered bin/traverse bin/elementAccess
 
 all: $(TARGETS)
 
-generate: generate.cpp
+bin/generate: src/generate.cpp | dirs
 	$(CXX) $(CXXFLAGS) -o $@ $<
 
-generateOrdered: generateOrdered.cpp
+bin/generateOrdered: src/generateOrdered.cpp | dirs
 	$(CXX) $(CXXFLAGS) -o $@ $<
 
-traverse: traverse.cpp
+bin/traverse: src/traverse.cpp | dirs
 	$(CXX) $(CXXFLAGS) -o $@ $<
 
-elementAccess: elementAccess.cpp
+bin/elementAccess: src/elementAccess.cpp | dirs
 	$(CXX) $(CXXFLAGS) -o $@ $<
 
 clean:
-	rm -f $(TARGETS)
+	rm -rf output
+	rm -rf bin
 
-.PHONY: all clean
+dirs:
+	mkdir -p bin
+	mkdir -p output
+
+.PHONY: all clean dirs
