@@ -155,9 +155,55 @@ struct KVS
       return "";
     }
 
+    /**
+     * Check if this element contains a given key. This is only applicable if the element is a Map or an Ordered collection. If the element is not a Map or Ordered collection, an std::runtime_error is thrown.
+     * @param key The key to check for in the element.
+     * @return true if the key exists in the element, false otherwise.
+     * @throws std::runtime_error If the element is not a Map or Ordered collection.
+     */
+		bool hasElement(const std::string &key) const {
+      if (type == Type::Map){
+        auto &map = get<Map>();
+        for (const auto &pair : map.data){
+          if (pair.first == key)
+            return true;
+        }
+        return false;
+      }
+      else if (type == Type::Ordered){
+        auto &ordered = get<Ordered>();
+        for (const auto &pair : ordered.data){
+          if (pair.first == key)
+            return true;
+        }
+        return false;
+      }
+      else
+        throw std::runtime_error("Element is not a map or ordered collection");
+		}
+
+    /**
+     * Get the size of the element. This is only applicable if the element is an Array, Map, or Ordered collection. If the element is not one of these types, an std::runtime_error is thrown.
+     * @return The size of the element.
+     * @throws std::runtime_error If the element is not an array, map, or ordered collection.
+     */
+    size_t size() const {
+      if (type == Type::Array)
+        return get<Array>().size();
+      else if (type == Type::Map)
+        return get<Map>().data.size();
+      else if (type == Type::Ordered)
+        return get<Ordered>().data.size();
+      else
+        throw std::runtime_error("Element is not an array, map, or ordered collection");
+    }
+
     template <typename T, std::enable_if_t<std::is_integral_v<T>, int> = 0>
     Element &operator[](T index);
-    Element &operator[](std::string key);
+    Element &operator[](const std::string key);
+		Element getElement(const std::string key);
+		template<typename T>
+		Element getElement(const std::string key, const T&value);
     Element &operator[](const char *key);
     Element &operator[](const Element &key);
 
@@ -796,13 +842,38 @@ KVS::Element &KVS::Element::operator[](T index)
   throw std::runtime_error("Root element is not an array or ordered collection");
 }
 
-KVS::Element &KVS::Element::operator[](std::string key)
+KVS::Element &KVS::Element::operator[](const std::string key)
 {
   if (type == Type::Map)
     return get<Map>()[key];
   if (type == Type::Ordered)
     return get<Ordered>()[key];
   throw std::runtime_error("Root element is not a map or ordered collection");
+}
+
+/**
+ * Get an element by key, returning a copy of the element. This means that if the element is a map or ordered collection then modifying the members of that element WILL modify the original element, but reassigning the element itself will not modify the original element. If the key does not exist, an std::runtime_error is thrown.
+ * @param key The key of the element to retrieve.
+ * @return A copy of the element associated with the specified key.
+ * @throws std::runtime_error If the key does not exist or if the root element is not a map or ordered collection.
+ */
+KVS::Element KVS::Element::getElement(const std::string key)
+{
+  return (*this)[key];
+}
+
+/**
+ * Get an element by key, returning a copy of the element. If the key does not exist then an element with the provided value is returned. This element is NOT added to the collection and modifying it will not modify the original collection. This means that if the element is a map, array or ordered collection then modifying the members of that element WILL modify the original element, but reassigning the element itself will not modify the original element. If the root element is not a map or ordered collection, an std::runtime_error is thrown.
+ * @param key The key of the element to retrieve.
+ * @param value The default value to return if the key does not exist.
+ * @return A copy of the element associated with the specified key, or an element with the provided value if the key does not exist.
+ * @throws std::runtime_error If the root element is not a map or ordered collection.
+ */
+template<typename T>
+KVS::Element KVS::Element::getElement(const std::string key, const T&value){
+  if (!hasElement(key))
+    return Element(value);
+  return (*this)[key];
 }
 
 KVS::Element &KVS::Element::operator[](const char *key)
